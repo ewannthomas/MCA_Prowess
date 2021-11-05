@@ -176,7 +176,7 @@ eeptools::isid(FV, vars = c("Co_name", "year", "Auditor_name"))
 
 
 #Creating Auditor Reappointment
-blah<-FV %>% group_by(Ownership_group, Co_name) %>% 
+temp_data<-FV %>% group_by(Ownership_group, Co_name) %>% 
   mutate(Aud_reappoint = case_when(
     Joint_Auditor==0 & lead(Aud_rotation)==1 ~ Auditor_name,
     Joint_Auditor==0 & Aud_rotation==1 ~ Auditor_name,
@@ -191,9 +191,8 @@ blah<-FV %>% group_by(Ownership_group, Co_name) %>%
 
 
 
-
-
-flah<-function(x){
+#function to pull a set of rotated and non rotated audiotrs
+temp_fn<-function(x){
   
   y<-intersect(x %>% filter(Aud_rotation==0) %>% pull(Aud_reappoint) %>% unique() %>% na.exclude(), 
                x %>% filter(Aud_rotation==1) %>% pull(Aud_reappoint) %>% unique() %>% na.exclude()) 
@@ -203,17 +202,17 @@ flah<-function(x){
 
 
 
-blah<-blah %>% mutate(vectors= map(data,flah)) %>% unnest(data) 
+temp_data<-temp_data %>% mutate(vectors= map(data,temp_fn)) %>% unnest(data) 
 
 
 
 
-blah$Aud_reappoint<-sapply(1:214230, function(x)
-  blah$Auditor_name[[x]] %in% blah$vectors[[x]] 
+temp_data$Aud_reappoint<-sapply(1:214230, function(x)
+  temp_data$Auditor_name[[x]] %in% temp_data$vectors[[x]] 
 )
 
 
-blah<-blah %>% select(-vectors) %>%
+temp_data<-temp_data %>% select(-vectors) %>%
   mutate(Aud_reappoint=case_when(
     Aud_reappoint==TRUE ~ 1,
     is.na(Auditor_name) ~ NA_real_,
@@ -221,9 +220,9 @@ blah<-blah %>% select(-vectors) %>%
   ))
 
 
-FV<-blah %>% select(-Aud_rotation) %>% left_join(FV,. )
+FV<-temp_data %>% select(-Aud_rotation) %>% left_join(FV,. )
 
-rm(blah, flah)
+rm(temp_data, temp_fn)
 
 #Creating specialized and non specialized reappointment
 FV<-FV %>% mutate(Spec_Aud_reappoint=case_when(
@@ -241,7 +240,7 @@ eeptools::isid(FV, vars = c("Co_name", "year", "Auditor_name"))
 
 
 #Creating Auditor Reappointment spec & nonspec classification
-blah<-FV %>% group_by(Ownership_group, Co_name) %>% 
+temp_data<-FV %>% group_by(Ownership_group, Co_name) %>% 
   mutate(Aud_reappoint = case_when(
     Joint_Auditor==0 & lead(Aud_rotation)==1 ~ Auditor_name,
     Joint_Auditor==0 & Aud_rotation==1 ~ Auditor_name,
@@ -254,7 +253,7 @@ blah<-FV %>% group_by(Ownership_group, Co_name) %>%
   nest() # running modified reapp codes for creating spec to spec and other reapps
 
 
-flah<-function(x){
+temp_fn<-function(x){
   
   y<-intersect(x %>% filter(Aud_rotation==0) %>% pull(Aud_reappoint) %>% unique() %>% na.exclude(), 
                x %>% filter(Aud_rotation==1) %>% pull(Aud_reappoint) %>% unique() %>% na.exclude()) 
@@ -263,7 +262,7 @@ flah<-function(x){
 
 
 
-blah<-blah %>% mutate(vectors= map(data,flah)) %>% unnest(data) %>% 
+temp_data<-temp_data %>% mutate(vectors= map(data,temp_fn)) %>% unnest(data) %>% 
   mutate(Aud_reappoint=case_when(
     Aud_rotation==1 ~ Aud_reappoint,
     Aud_rotation==0 ~ NA_character_ # modofied here
@@ -273,12 +272,12 @@ blah<-blah %>% mutate(vectors= map(data,flah)) %>% unnest(data) %>%
 
 
 
-blah$Aud_reappoint<-sapply(1:214230, function(x)
-  blah$Aud_reappoint[[x]] %in% blah$vectors[[x]] #modified here
+temp_data$Aud_reappoint<-sapply(1:214230, function(x)
+  temp_data$Aud_reappoint[[x]] %in% temp_data$vectors[[x]] #modified here
 )
 
 
-blah<-blah %>% select(-vectors)%>%
+temp_data<-temp_data %>% select(-vectors)%>%
   mutate(Aud_reappoint=case_when(
     Aud_reappoint==TRUE ~ 1,
     is.na(Auditor_name) ~ NA_real_,
@@ -286,7 +285,7 @@ blah<-blah %>% select(-vectors)%>%
 
 
 
-blah<-blah %>% group_by(Ownership_group) %>% #codes specific for spec top spec creaton
+temp_data<-temp_data %>% group_by(Ownership_group) %>% #codes specific for spec top spec creaton
   mutate(spec_spec=case_when(
     Aud_rotation==1 & Aud_reappoint==1 & lag(GAUDSPEC,n=1L)==1& GAUDSPEC==1 ~1,
     is.na(Aud_reappoint) ~NA_real_,
@@ -305,12 +304,12 @@ blah<-blah %>% group_by(Ownership_group) %>% #codes specific for spec top spec c
       TRUE~0)) %>% ungroup()
 
 
-FV<-blah %>% select(-Aud_rotation, -Aud_reappoint, -GAUDSPEC) %>% left_join(FV,. )
+FV<-temp_data %>% select(-Aud_rotation, -Aud_reappoint, -GAUDSPEC) %>% left_join(FV,. )
 
 
 eeptools::isid(FV, vars = c("Co_name", "year", "Auditor_name"))
 
-rm(blah, flah)
+rm(temp_data, temp_fn)
 
 # Merging FV to board data from prowess and prime -------------
 load("./Prime/Object for merge with FV.Rdata")
@@ -517,7 +516,7 @@ eeptools::isid(FV, vars = c("Co_name", "year", "Auditor_name"))
 
 
 # MJ Model ROA ------------------------------------------------------------
-boom=FV
+boom=FV #assigning FV to new and temporary data object
 
 boom<-boom %>% filter(NIC_count>10 & year>=2004) %>% group_by(NIC_2, year) %>% nest()
 
@@ -741,11 +740,11 @@ remove(MJ_model, MJ_model_BG, Roy_Models, Roy_Models_BG, Vastav_Models, Vastav_M
 
 
 
-vlah<-FV %>% select(Closeness, Eigen_centrality, Degree, Closeness_per_year, Eigen_centrality_per_year, Degree_per_year,
+central_data<-FV %>% select(Closeness, Eigen_centrality, Degree, Closeness_per_year, Eigen_centrality_per_year, Degree_per_year,
                     Closeness_Mkt, Eigen_centrality_Mkt, Degree_Mkt)
 
 
-Centrality_reg<-lapply(vlah, function(y)
+Centrality_reg<-lapply(central_data, function(y)
     FV %>% lm(y ~ Aud_rotation + Groupstand + lag(PB) + lag(Size) + lag(Roa) + Big4 + 
                 Promoters_percent_shares_held + log(Audit_fees+0.1) + log(Non_Audit_Fee+0.1), data=.))
 
@@ -762,13 +761,13 @@ modelsummary(Centrality_reg, stars = T, statistic = "statistic",
 
 
 #centrality regression for Groupstand==1
-vlah<-FV %>% filter(Groupstand==1) %>%  select(Closeness, Eigen_centrality, Degree, Closeness_per_year, Eigen_centrality_per_year, Degree_per_year,
+central_data<-FV %>% filter(Groupstand==1) %>%  select(Closeness, Eigen_centrality, Degree, Closeness_per_year, Eigen_centrality_per_year, Degree_per_year,
                                                Closeness_Mkt, Eigen_centrality_Mkt, Degree_Mkt)
 
 
 
 
-Centrality_reg_BG_only<-lapply(vlah, function(y)
+Centrality_reg_BG_only<-lapply(central_data, function(y)
   FV %>% filter(Groupstand==1) %>% lm(y ~ Aud_rotation + lag(PB) + lag(Size) + lag(Roa) + Big4 + 
                                         Promoters_percent_shares_held + log(Audit_fees+0.1) + log(Non_Audit_Fee+0.1), data=.))
 
@@ -785,7 +784,7 @@ modelsummary(Centrality_reg_BG_only, stars = T, statistic = "statistic",
 
 
 
-rm(Centrality_reg, Centrality_reg_BG_only, flah, vlah)
+rm(Centrality_reg, Centrality_reg_BG_only, indep_vars, central_data)
 
 
 
@@ -805,21 +804,21 @@ FV<- FV %>% mutate(Std_rem_roy=(std_prod_roy+std_roy_cfo+std_roy_disc),
 
 FV<- FV %>% mutate(Std_rem_roy2=(abs(Roy_prod_resid)+ abs(Roy_cfo_resid)*-1 + abs(Roy_disc_resid)*-1))
 
-flah<-FV %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid)
+indep_vars<-FV %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid)
 
-vlah<-FV %>% select(Closeness, Eigen_centrality, Degree, Closeness_per_year, Eigen_centrality_per_year, Degree_per_year,
+central_data<-FV %>% select(Closeness, Eigen_centrality, Degree, Closeness_per_year, Eigen_centrality_per_year, Degree_per_year,
                     Closeness_Mkt, Eigen_centrality_Mkt, Degree_Mkt)
 
 
 
-Aud_quality_reg<-lapply(flah, function(y)
-  lapply(vlah, function(x)
+Aud_quality_reg<-lapply(indep_vars, function(y)
+  lapply(central_data, function(x)
     FV %>% lm(y ~ MJ_roa_resid + Groupstand + lag(PB) + lag(Size) + lag(Roa) + Big4 + 
                 Promoters_percent_shares_held + Age + Time_dummy*Aud_rotation + Time_dummy*x, 
               data=., na.action = na.exclude)))
 
 
-Aud_quality_reg[['MJ_roa_resid']]<-lapply(vlah, function(x)
+Aud_quality_reg[['MJ_roa_resid']]<-lapply(central_data, function(x)
   FV %>% lm(MJ_roa_resid ~ Std_rem_roy + Groupstand + lag(PB) + lag(Size) + lag(Roa) +Big4 + 
               Promoters_percent_shares_held + Age + 
               Time_dummy*Aud_rotation + Time_dummy*x, data=.))
@@ -828,7 +827,7 @@ Aud_quality_reg[['MJ_roa_resid']]<-lapply(vlah, function(x)
 
 #Assigning correct coefficient names to regression output
 
-glah<-names(Aud_quality_reg[[1]])
+aud_names<-names(Aud_quality_reg[[1]])
 
 
 indeps<-list(
@@ -843,13 +842,13 @@ indeps_mj<-list(
     "Auditor Rotation X Time Dummy", "Time Dummy X x"))
 
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(aud_names, indeps, x_replacer)
 
-indeps_mj<-map2(glah, indeps_mj, fung)
+indeps_mj<-map2(aud_names, indeps_mj, x_replacer)
 
 for(x in 1:3){
   for(y in 1:9){
@@ -869,7 +868,7 @@ for(x in 1:4){
   
 }
 
-rm(flah, fung, glah, indeps, indeps_mj, vlah, x , y)
+rm(indep_vars, x_replacer, aud_names, indeps, indeps_mj, central_data, x , y)
 
 
 modelsummary(c(Aud_quality_reg[[1]], Aud_quality_reg[[2]], Aud_quality_reg[[3]], Aud_quality_reg[[4]]), stars = T,
@@ -889,10 +888,10 @@ rm(Aud_quality_reg)
 # REM & Accrual regressions with only Auditor rotation and time dummy --------------------------------
 
 
-flah<-FV %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid)
+indep_vars<-FV %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid)
 
 
-Aud_quality_reg<-lapply(flah, function(y)
+Aud_quality_reg<-lapply(indep_vars, function(y)
     FV %>% lm(y ~ MJ_roa_resid + Groupstand + lag(PB) + lag(Size) + lag(Roa) + Big4 + 
                 Promoters_percent_shares_held + Age + Time_dummy*Aud_rotation, 
               data=., na.action = na.exclude))
@@ -906,7 +905,7 @@ Aud_quality_reg[['MJ_roa_resid']]<- FV %>% lm(MJ_roa_resid ~ Std_rem_roy + Group
 
 #Assigning correct coefficient names to regression output
 
-glah<-names(Aud_quality_reg[[1]])
+aud_names<-names(Aud_quality_reg[[1]])
 
 
 indeps<-c("Constant", "MJ roa residuals", "Groupstand Dummy", "Lag PB", "Lag Size", "Lag RoA", "Big4 Dummy",
@@ -927,7 +926,7 @@ for(x in 1:3){
 
 
 
-rm(flah,indeps, indeps_mj, x )
+rm(indep_vars,indeps, indeps_mj, x )
 
 
 modelsummary(Aud_quality_reg, stars = T,
@@ -947,21 +946,21 @@ rm(Aud_quality_reg)
 
 # REM & Accrual regressions with only centrality measures --------------------------------
 
-flah<-FV %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid)
+indep_vars<-FV %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid)
 
-vlah<-FV %>% select(Closeness, Eigen_centrality, Degree, Closeness_per_year, Eigen_centrality_per_year, Degree_per_year,
+central_data<-FV %>% select(Closeness, Eigen_centrality, Degree, Closeness_per_year, Eigen_centrality_per_year, Degree_per_year,
                     Closeness_Mkt, Eigen_centrality_Mkt, Degree_Mkt)
 
 
 
-Aud_quality_reg<-lapply(flah, function(y)
-  lapply(vlah, function(x)
+Aud_quality_reg<-lapply(indep_vars, function(y)
+  lapply(central_data, function(x)
     FV %>% lm(y ~ MJ_roa_resid + Groupstand + lag(PB) + lag(Size) + lag(Roa) + Big4 + 
                 Promoters_percent_shares_held + Age + Time_dummy*x, 
               data=., na.action = na.exclude)))
 
 
-Aud_quality_reg[['MJ_roa_resid']]<-lapply(vlah, function(x)
+Aud_quality_reg[['MJ_roa_resid']]<-lapply(central_data, function(x)
   FV %>% lm(MJ_roa_resid ~ Std_rem_roy + Groupstand + lag(PB) + lag(Size) + lag(Roa) +Big4 + 
               Promoters_percent_shares_held + Age + 
               Time_dummy*x, data=.))
@@ -970,7 +969,7 @@ Aud_quality_reg[['MJ_roa_resid']]<-lapply(vlah, function(x)
 
 #Assigning correct coefficient names to regression output
 
-glah<-names(Aud_quality_reg[[1]])
+aud_names<-names(Aud_quality_reg[[1]])
 
 
 indeps<-list(
@@ -983,13 +982,13 @@ indeps_mj<-list(
     "Percent of Shares held by Promters", "Age", "Time Dummy", "x", "Time Dummy X x" ))
 
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(aud_names, indeps, x_replacer)
 
-indeps_mj<-map2(glah, indeps_mj, fung)
+indeps_mj<-map2(aud_names, indeps_mj, x_replacer)
 
 for(x in 1:3){
   for(y in 1:9){
@@ -1009,7 +1008,7 @@ for(x in 1:4){
   
 }
 
-rm(flah, fung, glah, indeps, indeps_mj, vlah, x , y)
+rm(indep_vars, x_replacer, aud_names, indeps, indeps_mj, central_data, x , y)
 
 
 modelsummary(c(Aud_quality_reg[[1]], Aud_quality_reg[[2]], Aud_quality_reg[[3]], Aud_quality_reg[[4]]), stars = T,
@@ -1040,10 +1039,10 @@ FV<-FV %>% mutate(GRPT_new=case_when(
 #FV<-FV %>% mutate(quant_GRPT = ntile(GRPT, n=10))
 
 
-vlah<-FV %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid)
+indep_vars<-FV %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid)
 
 
-Aud_reappoint_reg<-lapply(vlah, function(x)
+Aud_reappoint_reg<-lapply(indep_vars, function(x)
   FV %>% glm(Aud_reappoint ~ x + Time_dummy + log(GRPT_new+0.1) + Groupstand + lag(PB) + lag(Size) + lag(Roa) + Big4 + 
                Promoters_percent_shares_held + log(Audit_fees+0.1) + log(Non_Audit_Fee+0.1), 
              data = ., family = "binomial", na.action = na.omit))
@@ -1057,13 +1056,13 @@ indeps<-list(
 indeps_mj<-c("Constant", "MJ_roa_resid", "Time Dummy", "Log of RPTs" , "Groupstand", "Lag of PB", "Lag of Size", "Lag of RoA",  "Big4 Dummy", 
              "Percent of Shares held by Promters", "Log of Audit Fees", "Log of Non-Audit Fees")
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-glah<-names(Aud_reappoint_reg)[1:3]
+aud_names<-names(Aud_reappoint_reg)[1:3]
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(aud_names, indeps, x_replacer)
 
 for(x in 1:3){
   Aud_reappoint_reg[[x]]$coefficients<-set_names(Aud_reappoint_reg[[x]]$coefficients, nm=indeps[[x]])
@@ -1083,15 +1082,15 @@ modelsummary(Aud_reappoint_reg, stars = T,
              title = "Audit Reappointment Regression upon audit quality measures",
              output = "Audit Reappointment Regression upon audit quality measures.html")
 
-rm(fung, glah, indeps, indeps_mj, vlah, x)
+rm(x_replacer, aud_names, indeps, indeps_mj, indep_vars, x)
 rm(Aud_reappoint_reg)
 
 #for only Group companies
 
-vlah<-FV %>% filter(Groupstand==1) %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid)
+indep_vars<-FV %>% filter(Groupstand==1) %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid)
 
 
-Aud_reappoint_reg<-lapply(vlah, function(x)
+Aud_reappoint_reg<-lapply(indep_vars, function(x)
   FV %>% filter(Groupstand==1) %>% glm(Aud_reappoint ~ x + Time_dummy + log(GRPT_new+0.1) + Groupstand + lag(PB) + lag(Size) + lag(Roa) + Big4 + 
                                          Promoters_percent_shares_held + log(Audit_fees+0.1) + log(Non_Audit_Fee+0.1), 
                                        data = ., family = "binomial"))
@@ -1103,13 +1102,13 @@ indeps<-list(
 indeps_mj<-c("Constant", "MJ_roa_resid", "Time Dummy", "Log of RPTs" , "Groupstand", "Lag of PB", "Lag of Size", "Lag of RoA",  "Big4 Dummy", 
              "Percent of Shares held by Promters", "Log of Audit Fees", "Log of Non-Audit Fees")
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-glah<-names(Aud_reappoint_reg)[1:3]
+aud_names<-names(Aud_reappoint_reg)[1:3]
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(aud_names, indeps, x_replacer)
 
 for(x in 1:3){
   Aud_reappoint_reg[[x]]$coefficients<-set_names(Aud_reappoint_reg[[x]]$coefficients, nm=indeps[[x]])
@@ -1129,7 +1128,7 @@ modelsummary(Aud_reappoint_reg, stars = T,
              title = "Audit Reappointment Regression upon audit quality measures (For Group Compnaies)",
              output = "Audit Reappointment Regression upon audit quality measures(For Group Compnaies).html")
 
-rm(fung, glah, indeps, indeps_mj, vlah, x)
+rm(model_names, aud_names, indeps, indeps_mj, indep_vars, x)
 rm(Aud_reappoint_reg)
 
 
@@ -1137,10 +1136,10 @@ rm(Aud_reappoint_reg)
 # Audit Regressions with for AUDSPEC categories ---------------------------
 
 
-vlah<-FV %>% filter(GAUDSPEC==1) %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid)
+indep_vars<-FV %>% filter(GAUDSPEC==1) %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid)
 
 
-Aud_reappoint_reg<-lapply(vlah, function(x)
+Aud_reappoint_reg<-lapply(indep_vars, function(x)
   FV %>% filter(GAUDSPEC==1) %>% glm(Aud_reappoint ~ x*Time_dummy + log(GRPT_new+0.1) + Aud_tenure +  LOSS + currentratio + Invrec_at + debtequity +
                                        EQFIN + Groupstand + lag(PB) + lag(Size) + lag(Roa) + Big4 + merger_acqui_dum + 
                                        Promoters_percent_shares_held*Time_dummy + log(Audit_fees+0.1) + log(Non_Audit_Fee+0.1) + as.factor(NIC_2), 
@@ -1152,9 +1151,9 @@ for(x in 1:4){
                                                                              pattern = "[:alpha:]*\\.(.*)")))]
 }
 
-glah<-c("Roy Production REM", "Roy CFO REM", "Roy Discretionary REM", "MJ RoA Accruals")
+model_names<-c("Roy Production REM", "Roy CFO REM", "Roy Discretionary REM", "MJ RoA Accruals")
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
@@ -1166,7 +1165,7 @@ indeps<-list(
     "Log of Non-Audit Fees", "x X Time Dummy", "Time Dummy X Percent of Shares held by Promters"))
 
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(model_names, indeps, x_replacer)
 
 for(x in 1:4){
   Aud_reappoint_reg[[x]]$coefficients<-set_names(Aud_reappoint_reg[[x]]$coefficients, nm=indeps[[x]])
@@ -1191,7 +1190,7 @@ modelsummary(Aud_reappoint_reg, stars = T,
              title = "Audit Reappointment Regression for specialized auditors upon audit quality measures",
              output = "Audit Reappointment Regression (with GAUDSPEC==1) upon audit quality measures.docx")
 
-rm(fung, glah, indeps, vlah, x, rows)
+rm(x_replacer, model_names, indeps, indep_vars, x, rows)
 rm(Aud_reappoint_reg)
 
 
@@ -1204,7 +1203,7 @@ rm(Aud_reappoint_reg)
 #Regressions without REM measures
 
 
-vlah<-FV %>% filter(GAUDSPEC==1) %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid)
+dep_vars<-FV %>% filter(GAUDSPEC==1) %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid)
 
 
 Aud_reappoint_reg<-FV %>% filter(GAUDSPEC==1) %>% 
@@ -1227,8 +1226,8 @@ indeps<-c("Constant", "Time Dummy", "Log of RPTs", "Auditor Tenure", "LOSS", "Cu
 
 Aud_reappoint_reg$coefficients<-set_names(Aud_reappoint_reg$coefficients, nm=indeps)
 
-rows<-tibble(blah<-c("Industry Fixed Effects"), 
-             blue<-c("YES"))
+rows<-tibble(col_a<-c("Industry Fixed Effects"), 
+             col_b<-c("YES"))
 
 
 
@@ -1241,7 +1240,7 @@ modelsummary(Aud_reappoint_reg, stars = T,
              title = "Audit Reappointment Regression for specialized auditors ",
              output = "Audit Reappointment Regression (with GAUDSPEC==1) without audit quality measures.docx")
 
-rm(indeps, rows, vlah)
+rm(indeps, rows, dep_vars)
 rm(Aud_reappoint_reg)
 
 
@@ -1253,11 +1252,11 @@ rm(Aud_reappoint_reg)
 
 load("./Prowess/R Data Prowess/FV Old.Rdata")
 
-blah<-FV %>% filter(Groupstand==1, year>2010 & year<2019) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
-flah<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Audit_fees, Non_Audit_Fee)
+temp_data<-FV %>% filter(Groupstand==1, year>2010 & year<2019) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
+temp_data2<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Audit_fees, Non_Audit_Fee)
 
-Aud_reapp_spec<-lapply(flah, function(y)
-  lapply(blah, function(x)
+Aud_reapp_spec<-lapply(temp_data2, function(y)
+  lapply(temp_data, function(x)
     FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% lm(y ~ x+ Aud_tenure +  LOSS + currentratio + Invrec_at + debtequity +
                                           EQFIN + lag(PB) + lag(Size) + lag(Roa) + Big4 + merger_acqui_dum +
                                           Promoters_percent_shares_held, data = ., na.action = na.exclude)))
@@ -1271,13 +1270,13 @@ indeps<-list(c("Constant", "x", "Log of RPTs", "Auditor Tenure", "LOSS", "Curren
 
 
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-glah<-names(Aud_reapp_spec[[1]])
+aud_names<-names(Aud_reapp_spec[[1]])
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(aud_names, indeps, x_replacer)
 
 for(j in 1:2){
   for(i in 1:4){
@@ -1300,18 +1299,18 @@ msummary(c(Aud_reapp_spec[[1]], Aud_reapp_spec[[2]]),
          output = "Audit Fee Regression Auditor Specialization and Time Dummy Interactions.html")
 
 
-rm(blah, flah, fung, FV, glah, indeps, j, i, Aud_reapp_spec)
+rm(temp_data, temp_data2, x_replacer, FV, aud_names, indeps, j, i, Aud_reapp_spec)
 
 
 #with REM measures
 
 load("./Prowess/R Data Prowess/Prowess List-Unlist Data.Rdata")
 
-blah<-FV %>% filter(Groupstand==1) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
-flah<-FV %>% filter(Groupstand==1) %>% select(Audit_fees, Non_Audit_Fee)
+temp_data<-FV %>% filter(Groupstand==1) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
+temp_data2<-FV %>% filter(Groupstand==1) %>% select(Audit_fees, Non_Audit_Fee)
 
-Aud_reapp_spec<-lapply(flah, function(y)
-  lapply(blah, function(x)
+Aud_reapp_spec<-lapply(temp_data2, function(y)
+  lapply(temp_data, function(x)
     FV %>% filter(Groupstand==1) %>% lm(y ~ x*Time_dummy + x*log(GRPT+0.1)+ x*Roy_prod_resid+ x*Roy_cfo_resid + x*Roy_disc_resid + x*MJ_roa_resid + Aud_tenure +  LOSS + currentratio + Invrec_at + debtequity +
                                           EQFIN + lag(PB) + lag(Size) + lag(Roa) + Big4 + merger_acqui_dum +
                                           Promoters_percent_shares_held, data = ., na.action = na.exclude)))
@@ -1327,13 +1326,13 @@ indeps<-list(c("Constant", "x", "Time Dummy", "Log of RPTs","Roy Production REM"
 
 
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-glah<-names(Aud_reapp_spec[[1]])
+aud_names<-names(Aud_reapp_spec[[1]])
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(aud_names, indeps, x_replacer)
 
 for(j in 1:2){
   for(i in 1:4){
@@ -1356,7 +1355,7 @@ msummary(c(Aud_reapp_spec[[1]], Aud_reapp_spec[[2]]),
          output = "Audit Fee Regression Auditor Specialization, Time Dummy and REM Interactions.html")
 
 
-rm(blah, flah, fung, glah, indeps, j, i, Aud_reapp_spec)
+rm(temp_data, temp_data2, x_replacer, aud_names, indeps, j, i, Aud_reapp_spec)
 
 
 

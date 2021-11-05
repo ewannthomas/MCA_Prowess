@@ -38,12 +38,12 @@ FV<-FV %>% select(Ownership_group, Co_name, year, Auditor_name, Groupstand) %>%
 
 
 
-fluk<-FV %>% group_by(Ownership_group) %>% nest() %>% na.exclude()
+temp_data<-FV %>% group_by(Ownership_group) %>% nest() %>% na.exclude()
 
 
 
 
-flah<-function(x){
+centralities_fn<-function(x){
   
   Edge<-x %>%  
     group_by(Co_name) %>% 
@@ -74,7 +74,7 @@ flah<-function(x){
 }
 
 
-boom<-fluk %>% mutate(boom=map(data, flah)) %>% select(-data) %>% unnest(boom)
+boom<-temp_data %>% mutate(boom=map(data, centralities_fn)) %>% select(-data) %>% unnest(boom)
 
 SNA<-FV %>% left_join(.,boom)
 
@@ -82,9 +82,9 @@ SNA<-FV %>% left_join(.,boom)
 
 # Centrality by year and ownership group --------------------------------
 
-fluk<-FV %>% group_by(Ownership_group, year) %>% nest() %>% na.exclude()
+temp_data<-FV %>% group_by(Ownership_group, year) %>% nest() %>% na.exclude()
 
-flah<-function(x){
+bipartie_fn<-function(x){
   
   Edge<-x %>%  
     group_by(Co_name) %>% 
@@ -99,7 +99,7 @@ flah<-function(x){
 }
 
 
-blah<-function(x){
+centralities_fn<-function(x){
   
   x<-bipartite.projection(x, multiplicity = TRUE, which = "true")
   
@@ -119,24 +119,24 @@ blah<-function(x){
 }
 
 
-vlah<-function(x,y){
+join_fn<-function(x,y){
   glah<-left_join(x,y)
 }
 
 
-boom<-fluk %>% mutate(boom=map(data, flah),
-                      boom=map_if(boom, is.bipartite, blah, .else = NULL)) %>% 
+boom<-temp_data %>% mutate(boom=map(data, bipartie_fn),
+                      boom=map_if(boom, is.bipartite, centralities_fn, .else = NULL)) %>% 
   filter(sapply(boom, is.data.frame)==TRUE)
 
 
-boom<-boom %>% mutate(def = map2(data, boom, vlah)) %>% 
+boom<-boom %>% mutate(def = map2(data, boom, join_fn)) %>% 
   select(Ownership_group, year, def) %>% unnest(def) 
 
 
 SNA<-SNA %>% left_join(.,boom)
 
 
-rm(fluk, boom, flah, blah, vlah)
+rm(temp_data, boom, bipartie_fn, centralities_fn, join_fn)
 
 
 
@@ -173,20 +173,20 @@ rm(Edge, edge, closeness, eigen, Degree)
 
 # Centrality T-test -------------------------------------------------
 
-vlah<-c("Closeness","Degree", "Eigen_centrality", "Closeness_per_year","Degree_per_year","Eigen_centrality_per_year", "Closeness_Mkt","Degree_Mkt","Eigen_centrality_Mkt")
+centralities<-c("Closeness","Degree", "Eigen_centrality", "Closeness_per_year","Degree_per_year","Eigen_centrality_per_year", "Closeness_Mkt","Degree_Mkt","Eigen_centrality_Mkt")
 
-klah<-c("Groupstand", "Top_10", "Top_50", "Top_10_standalone")
+by_vars<-c("Groupstand", "Top_10", "Top_50", "Top_10_standalone")
 
-T_test<-lapply(klah, function(y)
-  lapply(vlah, function(x)
+T_test<-lapply(by_vars, function(y)
+  lapply(centralities, function(x)
     
     t.test(SNA[[x]] ~ SNA[[y]], var.equal=FALSE, alternative= "two.sided")))
 
 
 T_test<-lapply(1:4, function(x)
-  set_names(T_test[[x]], nm=vlah))
+  set_names(T_test[[x]], nm=centralities))
 
-T_test<-set_names(T_test, klah)
+T_test<-set_names(T_test, by_vars)
 
 
 T_test[[1]]<-map_dfr(T_test[[1]], ~broom::tidy(.), .id="Variable") %>% select(-7:-11) %>% 
@@ -215,7 +215,7 @@ T_test[[4]]<-map_dfr(T_test[[4]], ~broom::tidy(.), .id="Variable") %>% select(-7
          Top_10_BG_Mean = estimate2,
          Stand_Alone_Mean = estimate1)
 
-rm(vlah, klah)
+rm(centralities, by_vars)
 
 gt::gt(T_test[[1]]) %>% 
   tab_header(title = "Two Sample T-Test of Centrality Measures",
@@ -250,12 +250,12 @@ FV<-FV_old %>%select(Ownership_group, Co_name,year,Auditor_name, Auditor_name_bi
 
 
 
-vlah<-c("Closeness", "Eigen_centrality", "Degree")
+centralities<-c("Closeness", "Eigen_centrality", "Degree")
 
 blah<-function(x){
 }
 
-Aud_50_centrality<-map(vlah, ~ FV %>% arrange(desc(.x)) %>% 
+Aud_50_centrality<-map(centralities, ~ FV %>% arrange(desc(.x)) %>% 
                          distinct(across(c("Auditor_name", .x))))
 
 

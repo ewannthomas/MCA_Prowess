@@ -293,7 +293,7 @@ reapp_co_count<-FV %>% group_by(Co_name) %>%
   group_by(year) %>% distinct(Co_name) %>% count()
 
 
-blah<-FV %>% group_by(Co_name) %>%
+temp_data<-FV %>% group_by(Co_name) %>%
   filter(Aud_reappoint==1 & Groupstand==1) %>% 
   group_by(year) %>% 
   mutate(year_roy_prdn = sum(Roy_prod_resid , na.rm = T),
@@ -301,19 +301,19 @@ blah<-FV %>% group_by(Co_name) %>%
          year_roy_disc = sum(Roy_disc_resid, na.rm = T),
          year_mj_roa=sum(MJ_roa_resid, na.rm = T))
 
-reapp_co_count<-blah %>% 
+reapp_co_count<-temp_data %>% 
   distinct(year_roy_prdn) %>% 
   left_join(reapp_co_count, .)
 
-reapp_co_count<-blah %>% 
+reapp_co_count<-temp_data %>% 
   distinct(year_roy_cfo) %>% 
   left_join(reapp_co_count, .)
 
-reapp_co_count<-blah %>% 
+reapp_co_count<-temp_data %>% 
   distinct(year_roy_disc) %>% 
   left_join(reapp_co_count, .)
 
-reapp_co_count<-blah %>% 
+reapp_co_count<-temp_data %>% 
   distinct(year_mj_roa) %>% 
   left_join(reapp_co_count, .)
 
@@ -343,18 +343,18 @@ plot_ly(reapp_co_count) %>%
                line = list(dash="dash"))
 
 
-rm(reapp_co_count, blah)
+rm(reapp_co_count, temp_data)
 
 
 # GAUDSPEC cross tables and plot ---------------------------------------------------
 
-blah<-FV %>% group_by(Ownership_group, GAUDSPEC) %>% distinct(Auditor_name, Aud_reappoint)
+temp_data<-FV %>% group_by(Ownership_group, GAUDSPEC) %>% distinct(Auditor_name, Aud_reappoint)
 
-tab_xtab(var.col = blah$GAUDSPEC,var.row = blah$Aud_reappoint, show.row.prc = T)
+tab_xtab(var.col = temp_data$GAUDSPEC,var.row = temp_data$Aud_reappoint, show.row.prc = T)
 
-blah<-FV %>% filter(Groupstand==1) %>% group_by(Ownership_group, GAUDSPEC) %>% distinct(Auditor_name, Aud_reappoint)
+temp_data<-FV %>% filter(Groupstand==1) %>% group_by(Ownership_group, GAUDSPEC) %>% distinct(Auditor_name, Aud_reappoint)
 
-tab_xtab(var.col = blah$GAUDSPEC,var.row = blah$Aud_reappoint, show.row.prc = T)
+tab_xtab(var.col = temp_data$GAUDSPEC,var.row = temp_data$Aud_reappoint, show.row.prc = T)
 
 
 
@@ -379,4 +379,4 @@ plot_ly(reapp_aud_count) %>%
   add_segments(x=2018, xend = 2018, y=0, yend = 600, color=I("maroon"), name="year - 2018",
                line = list(dash="dash"))
 
-rm(blah, reapp_aud_count)
+rm(temp_data, reapp_aud_count)

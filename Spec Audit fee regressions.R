@@ -9,11 +9,11 @@ library(gt)
 
 load("./Prowess/R Data Prowess/FV Old.Rdata")
 
-blah<-FV %>% filter(Groupstand==1, year>2010 & year<2019) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
-flah<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Audit_fees_at, Non_Audit_Fee_at)
+indep_vars<-FV %>% filter(Groupstand==1, year>2010 & year<2019) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
+dep_vars<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Audit_fees_at, Non_Audit_Fee_at)
 
-Aud_reapp_spec<-lapply(flah, function(y)
-  lapply(blah, function(x)
+Aud_reapp_spec<-lapply(dep_vars, function(y)
+  lapply(indep_vars, function(x)
     FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% lm(y ~ x + Aud_tenure +  LOSS + currentratio + Invrec_at + debtequity +
                                                                   EQFIN + lag(PB) + lag(Size) + lag(Roa) + merger_acqui_dum +
                                                                   Promoters_percent_shares_held + Age + as.factor(NIC_2) + as.factor(year), data = ., na.action = na.exclude)))
@@ -36,13 +36,13 @@ for(x in 1:4){
 }
 
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-glah<-c("Specialized - Specialized", "Specialized - Non specialized", "Non specialized - Specialized", "Non specialized - Non specialized")
+aud_names<-c("Specialized - Specialized", "Specialized - Non specialized", "Non specialized - Specialized", "Non specialized - Non specialized")
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(aud_names, indeps, x_replacer)
 
 
 for(j in 1:2){
@@ -57,15 +57,15 @@ for(j in 1:2){
 }
 
 
-rows<-tibble(blah<-c("Industry Fixed Effects", "Year Fixed Effects"), 
-             blue<-c("YES"), 
-             blee<-c("YES"),
-             glue<-c("YES"),
-             clue<-c("YES"),
-             vu<-c("YES"),
-             cu<-c("YES"),
-             bu<-c("YES"),
-             xu<-c("YES"))
+rows<-tibble(col_a<-c("Industry Fixed Effects", "Year Fixed Effects"), 
+             col_b<-c("YES"), 
+             col_c<-c("YES"),
+             col_d<-c("YES"),
+             col_e<-c("YES"),
+             col_f<-c("YES"),
+             col_g<-c("YES"),
+             col_h<-c("YES"),
+             col_f<-c("YES"))
 
 msummary(c(Aud_reapp_spec[[1]], Aud_reapp_spec[[2]]),
          stars = T,
@@ -77,7 +77,7 @@ msummary(c(Aud_reapp_spec[[1]], Aud_reapp_spec[[2]]),
 output = "Audit Fee Regression With Time Filter (Audit tenure included).html")
 
 
-rm(blah, flah, fung, glah, indeps, j, i, Aud_reapp_spec, x, y, rows)
+rm(indep_vars, dep_vars, x_replacer, aud_names, indeps, j, i, Aud_reapp_spec, x, y, rows)
 
 
 
@@ -86,11 +86,11 @@ rm(blah, flah, fung, glah, indeps, j, i, Aud_reapp_spec, x, y, rows)
 
 # Spec_Spec regressions with time filter w/o interactions &  aud_tenure--------
 
-blah<-FV %>% filter(Groupstand==1, year>2010 & year<2019) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
-flah<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Audit_fees_at, Non_Audit_Fee_at)
+indep_vars<-FV %>% filter(Groupstand==1, year>2010 & year<2019) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
+dep_vars<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Audit_fees_at, Non_Audit_Fee_at)
 
-Aud_reapp_spec<-lapply(flah, function(y)
-  lapply(blah, function(x)
+Aud_reapp_spec<-lapply(dep_vars, function(y)
+  lapply(indep_vars, function(x)
     FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% lm(y ~ x + LOSS + currentratio + Invrec_at + debtequity +
                                                                   EQFIN + lag(PB) + lag(Size) + lag(Roa) + merger_acqui_dum +
                                                                   Promoters_percent_shares_held + Age + as.factor(NIC_2) + as.factor(year), data = ., na.action = na.exclude)))
@@ -113,13 +113,13 @@ for(y in 1:2){
 }
 
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-glah<-c("Specialized - Specialized", "Specialized - Non specialized", "Non specialized - Specialized", "Non specialized - Non specialized")
+aud_names<-c("Specialized - Specialized", "Specialized - Non specialized", "Non specialized - Specialized", "Non specialized - Non specialized")
 
-indeps<-map2(glah, indeps, fung)
+indeps<-map2(aud_names, indeps, x_replacer)
 
 
 for(j in 1:2){
@@ -134,15 +134,15 @@ for(j in 1:2){
 }
 
 
-rows<-tibble(blah<-c("Industry Fixed Effects", "Year Fixed Effects"), 
-             blue<-c("YES"), 
-             blee<-c("YES"),
-             glue<-c("YES"),
-             clue<-c("YES"),
-             vu<-c("YES"),
-             cu<-c("YES"),
-             bu<-c("YES"),
-             xu<-c("YES"))
+rows<-tibble(col_a<-c("Industry Fixed Effects", "Year Fixed Effects"), 
+             col_b<-c("YES"), 
+             col_c<-c("YES"),
+             col_d<-c("YES"),
+             col_e<-c("YES"),
+             col_f<-c("YES"),
+             col_g<-c("YES"),
+             col_h<-c("YES"),
+             col_f<-c("YES"))
 
 
 msummary(c(Aud_reapp_spec[[1]], Aud_reapp_spec[[2]]),
@@ -155,7 +155,7 @@ msummary(c(Aud_reapp_spec[[1]], Aud_reapp_spec[[2]]),
          output = "Audit Fee Regression With Time Filter ( Without Audit tenure ).html")
 
 
-rm(blah, flah, fung, glah, indeps, j, i, Aud_reapp_spec, x, y, rows)
+rm(indep_vars, dep_vars, x_replacer, aud_names, indeps, j, i, Aud_reapp_spec, x, y, rows)
 
 
 
@@ -164,14 +164,14 @@ rm(blah, flah, fung, glah, indeps, j, i, Aud_reapp_spec, x, y, rows)
 
 load("./Prowess/R Data Prowess/Prowess List-Unlist Data.Rdata")
 
-blah<-FV %>% filter(Groupstand==1, year>2010 & year<2019) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
-flah<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Audit_fees_at, Non_Audit_Fee_at)
+indep_vars<-FV %>% filter(Groupstand==1, year>2010 & year<2019) %>% select(spec_spec, spec_nonspec, nonspec_spec, nonspec_nonspec)
+dep_vars<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Audit_fees_at, Non_Audit_Fee_at)
 klah<-FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% select(Roy_prod_resid, Roy_cfo_resid, Roy_disc_resid, MJ_roa_resid) 
 
 
 
-Aud_reapp_spec<-lapply(flah, function(y)
-  lapply(blah, function(x)
+Aud_reapp_spec<-lapply(dep_vars, function(y)
+  lapply(indep_vars, function(x)
     lapply(klah, function(zz)
     FV %>% filter(Groupstand==1,  year>2010 & year<2019) %>% lm(y ~ x*zz + LOSS + currentratio + Invrec_at + debtequity +
                                                                   EQFIN + lag(PB) + lag(Size) + lag(Roa) + merger_acqui_dum +
@@ -199,21 +199,21 @@ for(y in 1:4){
 }
 
 
-fung<-function(h,j){
+x_replacer<-function(h,j){
   str_replace(j, pattern = "x", replacement = h)
 }
 
-fang<-function(h,j){
+zz_replacer<-function(h,j){
   str_replace(j, pattern = "zz", replacement = h)
 }
 
 
-glah<-c("Specialized - Specialized", "Specialized - Non specialized", "Non specialized - Specialized", "Non specialized - Non specialized")
+aud_names<-c("Specialized - Specialized", "Specialized - Non specialized", "Non specialized - Specialized", "Non specialized - Non specialized")
 
-gluh<-rep(c("Roy Production REM", "Roy CFO REM", "Roy Discretionary REM", "MJ RoA Accruals"), times=4)
+REM_replacer<-rep(c("Roy Production REM", "Roy CFO REM", "Roy Discretionary REM", "MJ RoA Accruals"), times=4)
 
-indeps<-map2(glah, indeps, fung)
-indeps<-map2(gluh, indeps, fang)
+indeps<-map2(aud_names, indeps, x_replacer)
+indeps<-map2(REM_replacer, indeps, zz_replacer)
 
 
 for(k in 1:2){
@@ -250,7 +250,7 @@ msummary(c(Aud_reapp_spec[[1]][[1]], Aud_reapp_spec[[1]][[2]],Aud_reapp_spec[[1]
          output = "Audit Fee Regression With Time Filter with REM Interactions.html")
 
 
-rm(blah, flah, fung, glah, indeps, j, i, Aud_reapp_spec, x, y, rows)
+rm(indep_vars, dep_vars, x_replacer, aud_names, indeps, j, i, Aud_reapp_spec, x, y, rows)
 
 
 

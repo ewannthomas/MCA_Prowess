@@ -39,12 +39,12 @@ FV<-FV %>% select(Ownership_group, Co_name, year, Auditor_name, Groupstand) %>%
 
 
 
-fluk<-FV %>% filter(Top_10==1) %>% group_by(Ownership_group) %>% nest() %>% na.exclude()
+FV_top_nest<-FV %>% filter(Top_10==1) %>% group_by(Ownership_group) %>% nest() %>% na.exclude()
 
 
 
 
-flah<-function(x){
+bipartie_fn<-function(x){
   
   Edge<-x %>%  
     group_by(Co_name) %>% 
@@ -60,14 +60,14 @@ flah<-function(x){
 }
 
 
-klah<-function(x){
+id_chnage_fn<-function(x){
   nodes<-x %>% distinct(Auditor_name) %>% na.exclude() %>% 
     rename(label = Auditor_name) %>% 
     rowid_to_column() %>% rename(id=rowid)
 }
 
 
-blah<-function(x,y){
+central_data_fn<-function(x,y){
   edges<-as_data_frame(x) %>%
     rename(source = from,
            dest = to) %>% 
@@ -93,9 +93,9 @@ joining<-function(x,y){
 }
 
 
-boom<-fluk %>% mutate(boom=map(data, flah),
-                      nodes=map(data, klah),
-                      edges=map2(boom,nodes, blah),
+boom<-FV_top_nest %>% mutate(boom=map(data, bipartie_fn),
+                      nodes=map(data, id_chnage_fn),
+                      edges=map2(boom,nodes, central_data_fn),
                       closeness=map(boom, close),
                       nodes=map2(nodes, closeness, joining)) 
 

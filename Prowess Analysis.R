@@ -125,12 +125,12 @@ NIC<-FV %>% filter(NIC_count>10) %>% distinct(NIC_2) %>% pull()
 #creating Year 2013 + vector
 Year<-FV %>% filter(year>=2013) %>% distinct(year) %>% pull()
 
-blah<-lapply(NIC, function(i)
+reg_fn<-lapply(NIC, function(i)
   lapply(Year, function(j)  FV %>% filter(NIC_2==i & year==j) %>% 
            lm(Production_at ~ One_at + Sales_at + Chg_sales_at + Lag_Chg_sales_at, data=., na.action = na.exclude)))
 
 # Accrual M Jones Model ---------------------------------------------------
-boom=FV
+boom=FV # assigning FV to a temporary data object 
 
 boom<-boom %>% filter(NIC_count>10 & year>=2004) %>% group_by(NIC_2, year) %>% nest()
 
